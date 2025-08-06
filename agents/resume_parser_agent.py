@@ -19,32 +19,32 @@ Always output in the following JSON format:
     "phone": "<contact number if available>",
     "total_experience_years": <numeric>,
     "skills": ["<skill1>", "<skill2>", ...],
-    "projects": [
+    "work_experiences": [
         {
-            "title": "<project title>",
-            "description": "<brief summary>",
-            "employer": "<company name>",
-            "duration": "<duration in months or years>",
-            "role": "<role in the project>",
-            "technologies_used": ["<tech1>", "<tech2>", ...]
-        },
-        ...
-    ],
-      "work experiances": [
-        company"[{
             "company_name": "<company name>",
             "job_title": "<job title>",
-            "duration": "<duration in months or years>",
-            "responsibilities": "<brief summary of responsibilities>"
+            "duration": "<duration in years (ex: if 2 year 11 month then 2 year 11 months), if mentioned as present or no end date , means candidate is still working there so calculate from date of joining to current date>",
+            "responsibilities": "<brief summary of responsibilities>",
+            "projects": [
+                {
+                    "title": "<project title>",
+                    "description": "<brief summary>",
+                    "duration": "<duration in months or years>",
+                    "role": "<role in the project>",
+                    "technologies_used": ["<tech1>", "<tech2>", ...]
+                }
+            ]
         }
-        ],
-        ...
     ],
     "education": [
         {
             "degree": "<degree>",
             "institution": "<university or college>",
-            "year_of_completion": "<year>"
+            "year_of_completion": "<year>",
+            "field_of_study": "<major or specialization>",
+            "grade": "<grade or percentage if available>",
+            "honors": "<any honors or distinctions if available>",
+            "duration of study": "<duration in years or months if available>"
         },
         ...
     ],

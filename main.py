@@ -21,6 +21,6 @@ async def run_resume_agent(resume_path):
 if __name__ == "__main__":
     asyncio.run(
         run_resume_agent(
-            "/Users/tharuntejapeddi/Personals/docs/resume/CV_Tharun Peddi_AI_QA.pdf"
+            "/Users/tharuntejapeddi/Projects/resume-job-matcher/resumes/CV_Tharun Peddi_AI_QA.pdf"
         )
     )
