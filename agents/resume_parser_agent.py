@@ -23,7 +23,9 @@ Always output in the following JSON format:
         {
             "company_name": "<company name>",
             "job_title": "<job title>",
-            "duration": "<duration in years (ex: if 2 year 11 month then 2 year 11 months), if mentioned as present or no end date , means candidate is still working there so calculate from date of joining to current date>",
+            "duration": "<For ongoing roles (where end date is 'Present'), calculate duration from start date to current date (August 2025). For example: If started in Jul 2021 and currently working (Present), calculate: Jul 2021 to Aug 2025 = 4 years 1 month. For completed roles, use the exact duration given>",
+            "start_date": "<Start date in MM/YYYY format>",
+            "end_date": "<End date in MM/YYYY format, or 'Present' for current role>",
             "responsibilities": "<brief summary of responsibilities>",
             "projects": [
                 {
@@ -51,8 +53,7 @@ Always output in the following JSON format:
     "certifications": [
         {
             "name": "<certification name>",
-            "issuer": "<organization>",
-            "year": "<year>"
+            "issuer": "<organization>"
         },
         ...
     ]
@@ -64,6 +65,12 @@ Guidelines:
 - Summarize long descriptions to 2-3 sentences where needed.
 - Ensure high accuracy while identifying skills and experience related to software, tools, or domain-specific technologies.
 - Be consistent in formatting; values like "Python" and "python" should be normalized to a consistent format (e.g., "Python").
+- For work experience duration calculation:
+  * For current roles (end date = 'Present'): Calculate duration from start date to current date (August 2025)
+  * Example: If started Jul 2021 and currently working, duration = Jul 2021 to Aug 2025 = 4 years 1 month
+  * Always store both start_date and end_date in MM/YYYY format for accurate tracking
+  * For past roles: Use the exact duration provided in the resume
+- Include all relevant projects under their respective work experiences
 
 You are expected to help another agent compare this data with job descriptions later. Focus on clarity, consistency, and accuracy.
 """,

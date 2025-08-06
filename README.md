@@ -2,7 +2,7 @@ Business requirement :
 
 This portal for technical recruiter, who upload candidate resume document and job description document to portal. Which will rate the list of candidate profile based on jobs description and also provide the reason why it is best suitable for the job give full summmary.
 
-1. recriter Upload resume of the candidate
+1. Recriter Upload resume of the candidate
 2. Parse the resume pdf file, then fetch experince, skills and projects etc
 3. Save files in json format then save in mongo DB
 4. then recruiter upload jd of job opportunity which have expected skills and job responsibilities

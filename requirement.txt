@@ -14,3 +14,4 @@ autogen-ext[mcp]
 streamlit
 fastapi[standard]
 pdfplumber
+pymongo
