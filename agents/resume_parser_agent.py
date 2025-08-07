@@ -1,78 +1,88 @@
 from autogen_agentchat.agents import AssistantAgent
+from model.model_client import get_model_client
+
+from util.mongo_util import insert_candidate_to_mongo
+from autogen_core.tools import FunctionTool
+
+insert_candidate_to_mongo_tool = FunctionTool(
+    insert_candidate_to_mongo,
+    description="A tool to insert candidate data into MongoDB",
+)
 
 
-def parse_resume_agent(model_client):
+def parse_resume_agent():
     agent = AssistantAgent(
         name="parse_resume_agent",
         description="An agent that parses resumes and extracts relevant information such as experience, skills, and projects.",
-        model_client=model_client,
+        model_client=get_model_client(),
         system_message="""
-You are a Resume Parser Agent designed to process raw resume text extracted from PDF files. 
+        You are a resume parsing agent. Your task is to analyze resume content provided by the user and extract relevant information in the structured JSON format below.
 
-Your goal is to extract structured, machine-readable information in JSON format for further processing. The resumes may vary in format and layout. Use your best judgment to infer and organize the data accurately.
-
-Always output in the following JSON format:
-
-{
-    "full_name": "<candidate name>",
-    "email": "<email address if available>",
-    "phone": "<contact number if available>",
-    "total_experience_years": <numeric>,
-    "skills": ["<skill1>", "<skill2>", ...],
-    "work_experiences": [
+        Example format:
         {
-            "company_name": "<company name>",
-            "job_title": "<job title>",
-            "duration": "<For ongoing roles (where end date is 'Present'), calculate duration from start date to current date (August 2025). For example: If started in Jul 2021 and currently working (Present), calculate: Jul 2021 to Aug 2025 = 4 years 1 month. For completed roles, use the exact duration given>",
-            "start_date": "<Start date in MM/YYYY format>",
-            "end_date": "<End date in MM/YYYY format, or 'Present' for current role>",
-            "responsibilities": "<brief summary of responsibilities>",
-            "projects": [
-                {
-                    "title": "<project title>",
-                    "description": "<brief summary>",
-                    "duration": "<duration in months or years>",
-                    "role": "<role in the project>",
-                    "technologies_used": ["<tech1>", "<tech2>", ...]
-                }
-            ]
-        }
-    ],
-    "education": [
-        {
-            "degree": "<degree>",
-            "institution": "<university or college>",
-            "year_of_completion": "<year>",
-            "field_of_study": "<major or specialization>",
-            "grade": "<grade or percentage if available>",
-            "honors": "<any honors or distinctions if available>",
-            "duration of study": "<duration in years or months if available>"
-        },
-        ...
-    ],
-    "certifications": [
-        {
-            "name": "<certification name>",
-            "issuer": "<organization>"
-        },
-        ...
-    ]
-}
+                    "candidate_name": "Tharun Peddi",
+                    "candidate_email": "tharunteja2009@gmail.com",
+                    "candidate_phone": "1234567890",
+                    "candidate_skills": ["Python", "AI", "Machine Learning", "Data Analysis"],
+                    "candidate_total_experience": "5 years",
+                    "professional_experience": [
+                        {
+                        "company": "XYZ Corp",
+                        "role": "AI Engineer",
+                        "start_date": "2020-01-01",
+                        "end_date": "2022-01-01",
+                        "responsibilities": "Developed AI models for data analysis, collaborated with cross-functional teams to implement machine learning solutions.",
+                        "duration_of_job": "2 years",
+                        "projects": [
+                            {
+                            "project_name": "AI Model Development",
+                            "description": "Developed a predictive model for customer behavior analysis.",
+                            "technologies_used": ["Python", "TensorFlow", "Pandas"]
+                            },
+                            {
+                            "project_name": "Data Analysis Automation",
+                            "description": "Automated data analysis processes using Python scripts.",
+                            "technologies_used": ["Python", "NumPy", "Pandas"]
+                            }
+                        ]
+                        }
+                    ],
+                    "education": {
+                        "degree": "Bachelor of Technology in Computer Science",
+                        "institution": "ABC University",
+                        "graduation_year": "2019",
+                        "grade": "First Class",
+                        "performance": "85%"
+                    },
+                    "certifications": [
+                        {
+                        "name": "Certified AI Engineer",
+                        "issuing_organization": "AI Institute",
+                        "issue_date": "2021-06-01"
+                        }
+                    ],
+                    "languages": ["English", "Spanish"]
+                    }
 
-Guidelines:
-- If some fields are not found in the resume, return them with empty strings, empty lists, or null where applicable.
-- Remove extra spaces or line breaks in extracted text.
-- Summarize long descriptions to 2-3 sentences where needed.
-- Ensure high accuracy while identifying skills and experience related to software, tools, or domain-specific technologies.
-- Be consistent in formatting; values like "Python" and "python" should be normalized to a consistent format (e.g., "Python").
-- For work experience duration calculation:
-  * For current roles (end date = 'Present'): Calculate duration from start date to current date (August 2025)
-  * Example: If started Jul 2021 and currently working, duration = Jul 2021 to Aug 2025 = 4 years 1 month
-  * Always store both start_date and end_date in MM/YYYY format for accurate tracking
-  * For past roles: Use the exact duration provided in the resume
-- Include all relevant projects under their respective work experiences
+        Instructions:
+                    1. If any field is missing in the resume, omit it from the JSON.
+                    2. If you are unable to extract any useful information, return None.
 
-You are expected to help another agent compare this data with job descriptions later. Focus on clarity, consistency, and accuracy.
-""",
+        Once you have extracted the data:
+                    1. **Call the tool `insert_candidate_to_mongo_tool`** with the following parameters:
+                    - `data`: The extracted information in JSON format (as a string).
+                    - `index`: true
+                    - `unique`: true
+                    - `upsert`: true
+
+        Example function call
+         insert_candidate_to_mongo_tool(data=<extracted_json>, index=true, unique=true, upsert=true)
+                    
+        2. **Send the extracted data to the next agent** called `resume_rag_builder_agent` for RAG creation.
+
+        Be precise, structured, and call the tool correctly.
+        """,
+        tools=[insert_candidate_to_mongo_tool],
+        reflect_on_tool_use=False,
     )
     return agent
