@@ -1,7 +1,7 @@
 from autogen_agentchat.agents import AssistantAgent
 from model.model_client import get_model_client
 from autogen_core.tools import FunctionTool
-from util.mem0_rag_util import rag_candidate_with_mem0
+from util.mem0_rag_resume_util import rag_candidate_with_mem0
 
 mem0_tool = FunctionTool(
     rag_candidate_with_mem0,

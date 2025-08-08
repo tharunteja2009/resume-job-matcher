@@ -64,23 +64,45 @@ def insert_candidate_to_mongo(data: str) -> None:
 
 
 def insert_job_to_mongo(data: str) -> None:
+    """Insert a job posting into MongoDB.
+
+    Args:
+        data: JSON string containing job information
+    """
     # Parse the JSON string into a dictionary
-    data_dict = json.loads(data)
+    try:
+        data_dict = json.loads(data)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format: {str(e)}")
 
-    # Generate a unique ID using phone number and set as _id
-    if "jobId" not in data_dict or "jobTitle" not in data_dict:
-        raise ValueError("jobId or title not found in JSON.")
+    # Ensure required fields exist
+    if "job_title" not in data_dict or "company_name" not in data_dict:
+        raise ValueError("job_title and company_name are required fields")
 
-    data_dict["_id"] = (
-        generate_unique_id(data_dict["jobId"]) + "_" + data_dict["jobTitle"]
-    )
+    # Generate a unique ID using job title and company name
+    unique_string = f"{data_dict['job_title']}_{data_dict['company_name']}"
+    data_dict["_id"] = generate_unique_id(unique_string)
+
+    # Ensure all values are strings
+    for key, value in data_dict.items():
+        if isinstance(value, (list, dict)):
+            data_dict[key] = json.dumps(value)
+        elif value is None:
+            data_dict[key] = ""
 
     # Connect to MongoDB
     db = get_mongo_client()
     collection = db[collection_name_of_job]
-    # Insert with error handling to avoid duplicates
+
+    # Insert or update with error handling
     try:
-        result = collection.insert_one(data_dict)
-        print(f"Candidate inserted with _id: {result.inserted_id}")
-    except errors.DuplicateKeyError:
-        print("Duplicate job found. Document not inserted.")
+        result = collection.replace_one(
+            {"_id": data_dict["_id"]}, data_dict, upsert=True
+        )
+        if result.upserted_id:
+            print(f"✅ Job inserted with _id: {result.upserted_id}")
+        else:
+            print(f"✅ Job updated with _id: {data_dict['_id']}")
+    except Exception as e:
+        print(f"❌ Error storing job: {str(e)}")
+        raise

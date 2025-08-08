@@ -1,10 +1,10 @@
 from autogen_agentchat.agents import AssistantAgent
 from model.model_client import get_model_client
 from autogen_core.tools import FunctionTool
-from util.mem0_rag_util import rag_job_posting_with_mem0
+from util.mem0_rag_job_util import rag_job_with_mem0
 
 mem0_tool = FunctionTool(
-    rag_job_posting_with_mem0,
+    rag_job_with_mem0,
     description="tool to insert job summary in chunks to mem0",
 )
 
@@ -15,50 +15,49 @@ def build_rag_using_job_context():
         description="an agent that builds a RAG (Retrieval-Augmented Generation) system using the context extracted from job posting. use mem0 to store the context and use it to answer questions about the job posting document.",
         model_client=get_model_client(),
         system_message="""
-            You are a smart and reliable assistant responsible for processing job postings extracted from various sources. Your task is to validate, clean, and summarize the structured JSON data before storing it in a MongoDB database.
-            You will receive a job posting in JSON format. Follow the instructions carefully before calling the tool `rag_job_posting_with_mem0`.
+        You are an intelligent assistant tasked with generating concise, high-quality, and human-readable summaries of job descriptions.
+        The job description has already been parsed by a previous agent. You will receive the parsed data in the message content. Your goal is to store this information in a structured format for use in a Retrieval-Augmented Generation (RAG) system.
+        Use the tool `rag_job_with_mem0` to store job context in memory (`mem0`) backed by a vector database (ChromaDB). Store the context as semantically meaningful chunks to support future question answering and candidate matching use cases.
 
-            ---
+        **Instructions:**
+        1. Extract the essential job identifiers:
+        - Job title
+        - Company name
+        - Location
+        - Employment type (full-time, part-time, contract, etc.)
+        These fields combined serve as a unique identifier for each job posting.
 
-            **Instructions:**
+        2. Check if a job with the same identifier already exists in `mem0`.
+        - If a match exists, override the existing entry with the new summary
+        - If no match is found, do not update any unrelated existing content in memory
 
-            1. **Validate and Clean the JSON:**
-            - Remove any fields that are:
-                - Empty (e.g., `""`, `null`, or missing).
-                - Clearly invalid or malformed (e.g., misspelled keys or stray characters).
+        3. Structure the summary in natural language using paragraph format. Ensure that it includes:
+        - Job title, company, location, and employment type
+        - Required experience level and qualifications
+        - Required skills (both technical and soft skills)
+        - Preferred/nice-to-have skills
+        - Key responsibilities and day-to-day activities
+        - Project details or team information (if provided)
+        - Benefits and additional perks
+        - Any specific requirements (e.g., certifications, clearances)
 
-            2. **Generate a Structured Summary:**
-            - Create a **natural language paragraph** summarizing the job posting using the cleaned data.
-            - The summary should be human-readable and include:
-                - Job title, company name, and job mode (if available)
-                - High-level job responsibilities and requirements
-                - Job type and salary (if available)
-                - Posting and closing dates (if present)
-                - Company information (if available)
-                - Hr contact information (if available)
-                - office location (if available)
-            - Example format:
-                ```
-                The job title is Software Engineer at Tech Solutions Inc. The role involves developing and maintaining software applications, requiring a Bachelor's degree in Computer Science or related field and 3+ years of experience in software development. The job is full-time with a salary range of 80,000 - 120,000 USD per year. The office is located in San Francisco, CA.
-                ```
+        4. Store the generated summary using the `rag_job_with_mem0` tool, chunked appropriately for semantic retrieval using chromadb.
+        - Ensure the chunks are meaningful and maintain context
+        - Include relevant keywords such as skills and years of experience in each chunk for better matching
+        - Structure data to facilitate candidate matching queries
 
-            3. **Store the Data in MongoDB:**
-            - After generating the summary, append it to the cleaned JSON as a new field: `"job_summary"`.
-            - Convert the entire JSON (including the summary) to a string.
-            - Call the tool `insert_job_to_mongo_tool` with the following parameters:
-                ```
-                insert_job_to_mongo_tool(data=<cleaned_json_with_summary_as_string>, index=true, unique=true, upsert=true)
-                ```
+        5. Special Instructions for Skills:
+        - Clearly distinguish between required and preferred skills
+        - Standardize skill names where possible (e.g., "JavaScript" not "JS")
+        - Group related skills together (e.g., programming languages, tools, frameworks)
+        - Include years of experience required for specific skills if mentioned
 
-            4. **If no valid information is extractable:**
-            - Return `None`.
-
-            ---
-
-            Your final output must be **either**:
-            - A valid tool call containing the cleaned job JSON with the `job_summary` field,  
-            **or**
-            - `None` if the input is too malformed or missing to extract meaningful content.
+        If you're unable to extract the required job information (title, company, location), return `None`.
+        For optimal candidate matching:
+        - Use clear, standardized terminology
+        - Maintain consistent formatting for experience requirements
+        - Highlight must-have vs. nice-to-have requirements
+        - Include relevant industry-specific keywords
         """,
         tools=[mem0_tool],
     )

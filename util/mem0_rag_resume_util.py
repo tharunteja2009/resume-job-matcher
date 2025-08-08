@@ -182,3 +182,74 @@ def search_candidates(query: str, limit: int = 5) -> List[Dict]:
                 continue
 
     return candidates
+
+
+def match_candidates_to_job(
+    required_skills: List[str], required_experience: str, limit: int = 5
+) -> List[Dict]:
+    """
+    Find matching candidates for a job based on required skills and experience.
+    Args:
+        required_skills: List of skills required for the job
+        required_experience: Required years of experience (e.g., "5 years")
+        limit: Maximum number of candidates to return
+    Returns:
+        List[Dict]: List of matching candidates with similarity scores
+    """
+    # Create a query combining required skills and experience
+    skills_query = ", ".join(required_skills)
+    query = f"Looking for candidates with skills in {skills_query} and around {required_experience} of experience"
+
+    # Get matching candidates
+    results = candidate_collection.query(
+        query_texts=[query],
+        n_results=limit,
+        include=["metadatas", "documents", "distances"],
+    )
+
+    # Process and score matches
+    matches = []
+    if results and results["documents"]:
+        for doc, metadata, distance in zip(
+            results["documents"][0], results["metadatas"][0], results["distances"][0]
+        ):
+            try:
+                document = json.loads(doc)
+                candidate_data = json.loads(document["structured_data"])
+
+                # Calculate match score (convert distance to similarity score)
+                similarity_score = 1 - distance
+
+                # Calculate skill match percentage
+                candidate_skills = set(
+                    candidate_data.get("candidate_skills", "").lower().split(", ")
+                )
+                required_skills_set = set(skill.lower() for skill in required_skills)
+                matching_skills = candidate_skills.intersection(required_skills_set)
+                skill_match_percentage = (
+                    len(matching_skills) / len(required_skills_set) * 100
+                    if required_skills_set
+                    else 0
+                )
+
+                # Combine semantic similarity with skill match for final score
+                final_score = similarity_score * 0.6 + skill_match_percentage * 0.4
+
+                # Add scores to candidate data
+                candidate_data["match_score"] = round(final_score, 2)
+                candidate_data["skill_match_percentage"] = round(
+                    skill_match_percentage, 2
+                )
+                candidate_data["matching_skills"] = list(matching_skills)
+                candidate_data["missing_skills"] = list(
+                    required_skills_set - candidate_skills
+                )
+
+                matches.append(candidate_data)
+
+            except json.JSONDecodeError:
+                continue
+
+    # Sort by match score
+    matches.sort(key=lambda x: x.get("match_score", 0), reverse=True)
+    return matches
