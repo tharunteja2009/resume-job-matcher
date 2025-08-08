@@ -1,38 +1,34 @@
 # importing module
 from pymongo import MongoClient, errors
 from autogen_core.tools import FunctionTool
-from config.constants import hostname, database, port
+from config.settings import get_config
 import json
 import hashlib
 import os
 
 
-collection_name_of_resumes = "candidates"
-collection_name_of_job = "job"
-
-
 def get_mongo_uri():
-    uri = (
-        "mongodb://"
-        + os.getenv("DB_USERNAME")
-        + ":"
-        + os.getenv("DB_PASSWORD")
-        + "@"
-        + hostname
-        + ":"
-        + port
-        + "/"
-        + database
-    )
-    return uri
+    """Get MongoDB connection URI from configuration."""
+    config = get_config()
+    return config.database.uri
 
 
 def get_mongo_client():
-    # Connect with the portnumber and host
+    """Get MongoDB client and database connection."""
+    config = get_config()
     client = MongoClient(get_mongo_uri())
     # Access database
-    mydatabase = client[database]
+    mydatabase = client[config.database.database]
     return mydatabase
+
+
+def get_collection_names():
+    """Get collection names from configuration."""
+    config = get_config()
+    return {
+        "candidates": config.candidates_collection,
+        "jobs": config.jobs_collection,
+    }
 
 
 def generate_unique_id(phone: str) -> str:
@@ -43,24 +39,41 @@ def generate_unique_id(phone: str) -> str:
 
 
 def insert_candidate_to_mongo(data: str) -> None:
-    # Parse the JSON string into a dictionary
-    data_dict = json.loads(data)
-
-    # Generate a unique ID using phone number and set as _id
-    if "candidate_phone" not in data_dict:
-        raise ValueError("Phone number not found in JSON.")
-
-    data_dict["_id"] = generate_unique_id(data_dict["candidate_phone"])
-
-    # Connect to MongoDB
-    db = get_mongo_client()
-    collection = db[collection_name_of_resumes]
-    # Insert with error handling to avoid duplicates
+    """Insert candidate data into MongoDB with proper error handling and data validation."""
     try:
-        result = collection.insert_one(data_dict)
-        print(f"Candidate inserted with _id: {result.inserted_id}")
-    except errors.DuplicateKeyError:
-        print("Duplicate candidate found. Document not inserted.")
+        # Parse the JSON string into a dictionary
+        data_dict = json.loads(data)
+
+        # Validate required fields
+        if "candidate_phone" not in data_dict:
+            raise ValueError("Phone number not found in JSON.")
+
+        # Generate a unique ID using phone number
+        data_dict["_id"] = generate_unique_id(data_dict["candidate_phone"])
+
+        # Ensure all values are properly formatted for MongoDB
+        for key, value in data_dict.items():
+            if isinstance(value, (list, dict)):
+                data_dict[key] = json.dumps(value)  # Convert complex objects to strings
+
+        # Connect to MongoDB
+        db = get_mongo_client()
+        collections = get_collection_names()
+        collection = db[collections["candidates"]]
+
+        # Insert with error handling
+        try:
+            result = collection.insert_one(data_dict)
+            print(f"✅ Candidate inserted with _id: {result.inserted_id}")
+        except errors.DuplicateKeyError:
+            print("⚠️ Duplicate candidate found. Document not inserted.")
+
+    except json.JSONDecodeError as e:
+        print(f"❌ Invalid JSON format: {str(e)}")
+        raise
+    except Exception as e:
+        print(f"❌ Error inserting candidate: {str(e)}")
+        raise
 
 
 def insert_job_to_mongo(data: str) -> None:
@@ -92,7 +105,8 @@ def insert_job_to_mongo(data: str) -> None:
 
     # Connect to MongoDB
     db = get_mongo_client()
-    collection = db[collection_name_of_job]
+    collections = get_collection_names()
+    collection = db[collections["jobs"]]
 
     # Insert or update with error handling
     try:

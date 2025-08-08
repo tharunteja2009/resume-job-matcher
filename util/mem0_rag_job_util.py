@@ -119,30 +119,66 @@ def rag_job_with_mem0(data: str) -> None:
         searchable_text = create_searchable_text(job_data)
 
         # Prepare metadata
+        # Convert lists to strings and ensure all metadata values are of accepted types
+        skills = job_data.get("required_skills", [])
+        if isinstance(skills, list):
+            skills = ", ".join(skills)
+        elif not isinstance(skills, str):
+            skills = str(skills)
+
         metadata = {
             "type": "job_description",
-            "job_title": job_data.get("job_title", "unknown"),
-            "company": job_data.get("company_name", "unknown"),
+            "job_title": str(job_data.get("job_title", "unknown")),
+            "company": str(job_data.get("company_name", "unknown")),
             "timestamp": datetime.now().isoformat(),
-            "required_skills": job_data.get("required_skills", []),
-            "content_type": "both",  # Indicates this document contains both structured and searchable data
-        }
+            "required_skills": skills,
+            "content_type": "both",
+            "experience_level": str(
+                job_data.get("required_experience", "not specified")
+            ),
+            "location": str(job_data.get("location", "not specified")),
+        }  # Create three focused chunks for better matching
+        skills_chunk = f"Position: {metadata['job_title']} | Skills Required: {metadata['required_skills']} | Experience: {metadata['experience_level']}"
 
-        # Create a combined document that includes both structured and searchable data
+        context_chunk = searchable_text  # Keep the full searchable text as context
+
+        # Create a sanitized document ID (remove special characters and spaces)
+        base_id = f"{metadata['job_title']}_{metadata['company']}".lower()
+        base_id = "".join(c if c.isalnum() else "_" for c in base_id)
+        timestamp = metadata["timestamp"].replace(":", "-")
+        doc_id = f"{base_id}_{timestamp}"
+
+        # Store data in a way that's compatible with ChromaDB
         document = {
-            "structured_data": json.dumps(job_data),
-            "searchable_text": searchable_text,
+            "skills_focus": skills_chunk,
+            "full_context": context_chunk,
+            "metadata": json.dumps(metadata),  # Store metadata as a JSON string
         }
 
-        # Generate a unique ID for the document
-        doc_id = (
-            f"{metadata['job_title']}_{metadata['company']}_{metadata['timestamp']}"
-        )
+        try:
+            # Store in ChromaDB with proper error handling
+            job_collection.upsert(
+                documents=[json.dumps(document)],
+                metadatas=[
+                    {
+                        "type": metadata["type"],
+                        "job_title": metadata["job_title"],
+                        "company": metadata["company"],
+                        "timestamp": metadata["timestamp"],
+                        "skills": metadata["required_skills"],
+                        "experience": metadata["experience_level"],
+                        "location": metadata["location"],
+                    }
+                ],
+                ids=[doc_id],
+            )
+            logger.info(
+                f"Successfully stored job data for {metadata['job_title']} at {metadata['company']}"
+            )
 
-        # Store in ChromaDB
-        job_collection.upsert(
-            documents=[json.dumps(document)], metadatas=[metadata], ids=[doc_id]
-        )
+        except Exception as e:
+            logger.error(f"Error storing job data in ChromaDB: {str(e)}")
+            raise
 
         logger.info(
             f"Successfully stored job data in mem0 for {job_data.get('job_title', 'unknown')} at {job_data.get('company_name', 'unknown')}"

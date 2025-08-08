@@ -32,6 +32,8 @@ def build_rag_using_resume_context():
         4. Store the generated summary using the `rag_candidate_with_mem0` tool, chunked appropriately for semantic retrieval using chromadb.
 
         If you're unable to extract the required candidate information (name, phone, or email), return `None`.
+        
+        once successfully stored, return a "COMPLETE" message for termination condition .
         """,
         tools=[mem0_tool],
     )

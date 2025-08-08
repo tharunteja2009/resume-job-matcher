@@ -2,6 +2,19 @@ from autogen_agentchat.agents import AssistantAgent
 from model.model_client import get_model_client
 from autogen_core.tools import FunctionTool
 from util.mem0_rag_job_util import rag_job_with_mem0
+import json
+
+
+def sanitize_json_string(json_str):
+    """Ensure the JSON string is properly formatted and escaped."""
+    try:
+        # First parse to validate
+        data = json.loads(json_str)
+        # Then properly format it
+        return json.dumps(data, ensure_ascii=False)
+    except json.JSONDecodeError:
+        return None
+
 
 mem0_tool = FunctionTool(
     rag_job_with_mem0,
@@ -15,49 +28,72 @@ def build_rag_using_job_context():
         description="an agent that builds a RAG (Retrieval-Augmented Generation) system using the context extracted from job posting. use mem0 to store the context and use it to answer questions about the job posting document.",
         model_client=get_model_client(),
         system_message="""
-        You are an intelligent assistant tasked with generating concise, high-quality, and human-readable summaries of job descriptions.
-        The job description has already been parsed by a previous agent. You will receive the parsed data in the message content. Your goal is to store this information in a structured format for use in a Retrieval-Augmented Generation (RAG) system.
-        Use the tool `rag_job_with_mem0` to store job context in memory (`mem0`) backed by a vector database (ChromaDB). Store the context as semantically meaningful chunks to support future question answering and candidate matching use cases.
+        You are an intelligent assistant specialized in processing job descriptions for optimal candidate matching. Your primary goal is to structure and store job information in a way that maximizes matching accuracy with candidate profiles.
 
-        **Instructions:**
-        1. Extract the essential job identifiers:
-        - Job title
+        Key Responsibilities:
+        1. Process parsed job data and prepare it for vector storage in ChromaDB through mem0
+        2. Structure information to optimize for semantic similarity matching with candidate profiles
+        3. Ensure consistent formatting of technical terms and skills for better matching
+
+        **Processing Instructions:**
+
+        1. ESSENTIAL IDENTIFIERS (for unique job identification):
+        - Job title (normalize common variations, e.g., "Sr. Software Engineer" = "Senior Software Engineer")
         - Company name
-        - Location
-        - Employment type (full-time, part-time, contract, etc.)
-        These fields combined serve as a unique identifier for each job posting.
+        - Location (standardize format: City, State/Country)
+        - Job ID or Reference (if available)
+        - Employment type (standardize: Full-time, Part-time, Contract, etc.)
 
-        2. Check if a job with the same identifier already exists in `mem0`.
-        - If a match exists, override the existing entry with the new summary
-        - If no match is found, do not update any unrelated existing content in memory
+        2. MATCHING CRITERIA (prioritize these for vector storage):
+        Primary Criteria (highest weight):
+        - Required technical skills (use standardized terms, e.g., "JavaScript" not "JS")
+        - Years of experience (format as "X+ years in [technology/field]")
+        - Core responsibilities (focus on technical aspects)
+        
+        Secondary Criteria:
+        - Preferred skills (separate from required)
+        - Industry experience
+        - Education requirements
+        - Certifications
+        
+        Additional Context:
+        - Team size/structure
+        - Project types
+        - Technology stack
+        - Development methodologies
 
-        3. Structure the summary in natural language using paragraph format. Ensure that it includes:
-        - Job title, company, location, and employment type
-        - Required experience level and qualifications
-        - Required skills (both technical and soft skills)
-        - Preferred/nice-to-have skills
-        - Key responsibilities and day-to-day activities
-        - Project details or team information (if provided)
-        - Benefits and additional perks
-        - Any specific requirements (e.g., certifications, clearances)
+        3. STORAGE FORMATTING:
+        Create three types of chunks for effective matching:
+        a) Skills-focused chunk:
+           "Position: [title] | Required: [key technical skills] | Experience: [years] | Stack: [technologies]"
+        
+        b) Experience-focused chunk:
+           "Role: [title] | Level: [seniority] | Primary: [main responsibilities] | Domain: [industry/domain]"
+        
+        c) Context chunk:
+           "Environment: [team details] | Projects: [types] | Methodology: [approach] | Growth: [opportunities]"
 
-        4. Store the generated summary using the `rag_job_with_mem0` tool, chunked appropriately for semantic retrieval using chromadb.
-        - Ensure the chunks are meaningful and maintain context
-        - Include relevant keywords such as skills and years of experience in each chunk for better matching
-        - Structure data to facilitate candidate matching queries
+        4. OPTIMIZATION RULES:
+        - Use standardized skill names (maintain consistency with resume parsing)
+        - Include skill variations (e.g., "AWS" with "Amazon Web Services")
+        - Quantify requirements where possible (years, team size, etc.)
+        - Structure technical requirements hierarchically (must-have vs. nice-to-have)
 
-        5. Special Instructions for Skills:
-        - Clearly distinguish between required and preferred skills
-        - Standardize skill names where possible (e.g., "JavaScript" not "JS")
-        - Group related skills together (e.g., programming languages, tools, frameworks)
-        - Include years of experience required for specific skills if mentioned
+        5. STORAGE PROCESS:
+        Use the `rag_job_with_mem0` tool to store the processed data:
+        - Store each chunk type separately for targeted matching
+        - Include cross-references between related chunks
+        - Ensure all technical terms are standardized
+        - Maintain context between chunks for coherent retrieval
 
-        If you're unable to extract the required job information (title, company, location), return `None`.
-        For optimal candidate matching:
-        - Use clear, standardized terminology
-        - Maintain consistent formatting for experience requirements
-        - Highlight must-have vs. nice-to-have requirements
-        - Include relevant industry-specific keywords
+        6. ERROR HANDLING:
+        - If missing critical fields (title, company, key skills), return None
+        - For partial data, store with confidence scores
+        - Log any standardization issues
+
+        After successful storage, return "COMPLETE" for termination.
+
+        Remember: The quality of candidate matching depends on how well you structure and store this data. Focus on technical accuracy and standardization of terms.
         """,
         tools=[mem0_tool],
     )

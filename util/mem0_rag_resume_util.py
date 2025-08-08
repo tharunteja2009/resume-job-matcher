@@ -22,17 +22,15 @@ candidate_collection = db_client.get_or_create_collection(
 
 
 def create_searchable_text(candidate_data: Dict[str, Any]) -> str:
-    """Create a natural language representation of candidate data for better semantic search."""
+    """Create a concise, searchable representation of candidate data."""
     sections = []
 
-    # Basic Information
-    sections.append(f"Candidate Profile: {candidate_data.get('candidate_name', '')}")
+    # Basic Information - Keep it minimal
     sections.append(
-        f"Contact: Email - {candidate_data.get('candidate_email', '')}, Phone - {candidate_data.get('candidate_phone', '')}"
+        f"{candidate_data.get('candidate_name', '')} - {candidate_data.get('candidate__total_experience', '')} Experience"
     )
-    sections.append(
-        f"Total Experience: {candidate_data.get('candidate__total_experience', '')}"
-    )
+    # Only include essential contact info in searchable text
+    sections.append(f"Contact: {candidate_data.get('candidate_email', '')}")
 
     # Skills
     sections.append(f"Skills: {candidate_data.get('candidate_skills', '')}")
