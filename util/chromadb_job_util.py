@@ -75,9 +75,9 @@ def create_searchable_text(job_data: Dict[str, Any]) -> str:
     return "\n".join(sections)
 
 
-def rag_job_with_mem0(data: str) -> None:
+def store_job_in_chromadb(data: str) -> None:
     """
-    Store job data in mem0 with RAG capabilities for future retrieval and querying.
+    Store job data in ChromaDB with RAG capabilities for future retrieval and querying.
 
     Args:
         data (str): Job description data in string format
@@ -181,11 +181,11 @@ def rag_job_with_mem0(data: str) -> None:
             raise
 
         logger.info(
-            f"Successfully stored job data in mem0 for {job_data.get('job_title', 'unknown')} at {job_data.get('company_name', 'unknown')}"
+            f"Successfully stored job data in ChromaDB for {job_data.get('job_title', 'unknown')} at {job_data.get('company_name', 'unknown')}"
         )
 
     except Exception as e:
-        logger.error(f"Error storing job data in mem0: {e}")
+        logger.error(f"Error storing job data in ChromaDB: {e}")
         raise
 
 

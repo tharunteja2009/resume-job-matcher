@@ -82,9 +82,9 @@ def create_searchable_text(candidate_data: Dict[str, Any]) -> str:
     return "\n".join(sections)
 
 
-def rag_candidate_with_mem0(data: str) -> None:
+def store_candidate_in_chromadb(data: str) -> None:
     """
-    Store candidate data in mem0 with RAG capabilities for future retrieval and querying.
+    Store candidate data in ChromaDB with RAG capabilities for future retrieval and querying.
 
     Args:
         data (str): Candidate data in string format
@@ -148,11 +148,11 @@ def rag_candidate_with_mem0(data: str) -> None:
         )
 
         logger.info(
-            f"Successfully stored candidate data in mem0 for {candidate_data.get('candidate_name', 'unknown')}"
+            f"Successfully stored candidate data in ChromaDB for {candidate_data.get('candidate_name', 'unknown')}"
         )
 
     except Exception as e:
-        logger.error(f"Error storing candidate data in mem0: {e}")
+        logger.error(f"Error storing candidate data in ChromaDB: {e}")
         raise
 
 

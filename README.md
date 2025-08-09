@@ -3,12 +3,10 @@
 ## 📋 Table of Contents
 - [Business Problem](#business-problem)
 - [Solution Overview](#solution-overview)
-- [Architecture](#architecture)
 - [Technology Stack](#technology-stack)
 - [Project Structure](#project-structure)
 - [Installation & Setup](#installation--setup)
 - [Usage Guide](#usage-guide)
-- [API Documentation](#api-documentation)
 - [Contributing](#contributing)
 
 ## 🎯 Business Problem
@@ -23,24 +21,16 @@ Recruiters spend countless hours manually reviewing resumes against job descript
 - 💼 Missed qualified candidates due to keyword-only matching
 - 📈 Inefficient talent pipeline management
 
-**Pain Points:**
-1. **Volume Challenge**: Processing hundreds of resumes for a single position
-2. **Skill Matching**: Identifying relevant skills and experience alignment
-3. **Experience Evaluation**: Assessing years of experience with specific technologies
-4. **Project Relevance**: Matching candidate projects to job responsibilities
-5. **Bias Reduction**: Objective, AI-driven candidate assessment
-
 ## 💡 Solution Overview
 
 Our **Resume-Job Matcher** is an AI-powered system that automates the entire talent matching workflow:
 
 ### 🔄 **Automated Workflow:**
-1. **📤 Document Upload**: Recruiters upload candidate resumes (PDF) and job descriptions
+1. **📤 Document Upload**: Upload candidate resumes (PDF) and job descriptions
 2. **🤖 AI Processing**: Multi-agent system extracts structured data using advanced LLMs
 3. **💾 Smart Storage**: Data stored in MongoDB with vector embeddings in ChromaDB
 4. **⚖️ Intelligent Matching**: AI compares candidates against job requirements
 5. **📊 Scoring & Insights**: Generates match scores with detailed recommendations
-6. **📈 Results Dashboard**: Visual presentation of ranked candidates
 
 ### 🎯 **Key Benefits:**
 - ✅ **95% Time Reduction** in initial screening
@@ -49,249 +39,44 @@ Our **Resume-Job Matcher** is an AI-powered system that automates the entire tal
 - ✅ **Detailed Insights** with justification for each match
 - ✅ **Scalable Processing** for high-volume recruitment
 
-## 🏗️ Architecture
-
-### 🎭 **Multi-Agent Architecture**
-Our system uses **Microsoft AutoGen** framework with specialized AI agents:
-
-```mermaid
-graph TD
-    subgraph "Document Processing Layer"
-        A[📄 Resume Upload] --> B[Resume Parser Agent]
-        C[📋 Job Description Upload] --> D[Job Parser Agent]
-    end
-    
-    subgraph "Data Extraction & Storage"
-        B --> E[📊 Structured Resume Data]
-        D --> F[📊 Structured Job Data]
-        E --> G[(MongoDB)]
-        F --> G
-        E --> H[(ChromaDB - Vector Store)]
-        F --> H
-        E --> I[Mem0 - RAG Context]
-        F --> I
-    end
-    
-    subgraph "AI Processing Teams"
-        G --> J[Resume Processing Team]
-        G --> K[Job Processing Team]
-        J --> L[Resume RAG Builder Agent]
-        K --> M[Job RAG Builder Agent]
-    end
-    
-    subgraph "Matching & Scoring Engine"
-        L --> N[🎯 Talent Rater Agent]
-        M --> N
-        N --> O[📈 Similarity Calculation]
-        O --> P[📊 Score Generation]
-        P --> Q[💡 Recommendations]
-    end
-    
-    subgraph "Presentation Layer"
-        Q --> R[📱 Streamlit UI]
-        R --> S[📊 Candidate Rankings]
-        R --> T[📋 Detailed Reports]
-        R --> U[💼 Hiring Insights]
-    end
-```
-
-### 🤖 **Agent Responsibilities**
-
-| Agent | Primary Function | Input | Output |
-|-------|-----------------|--------|---------|
-| **Resume Parser Agent** | Extract structured data from resumes | PDF Resume | JSON with skills, experience, projects |
-| **Job Parser Agent** | Parse job requirements and responsibilities | PDF Job Description | JSON with required skills, responsibilities |
-| **Resume RAG Builder** | Create vector embeddings for resumes | Structured resume data | Vector representations in ChromaDB |
-| **Job RAG Builder** | Create vector embeddings for jobs | Structured job data | Vector representations in ChromaDB |
-| **Talent Rater Agent** | Compare and score candidates | Resume + Job vectors | Match scores + recommendations |
-
-### 🗄️ **Data Flow Architecture**
-
-```mermaid
-sequenceDiagram
-    participant U as 👨‍💼 Recruiter
-    participant API as 🔗 FastAPI Backend
-    participant RP as 🤖 Resume Parser
-    participant JP as 🤖 Job Parser
-    participant DB as 💾 MongoDB
-    participant VDB as 📊 ChromaDB
-    participant TR as ⚖️ Talent Rater
-    participant UI as 📱 Streamlit UI
-    
-    U->>API: Upload Resume PDF
-    API->>RP: Process Resume
-    RP->>DB: Store structured data
-    RP->>VDB: Store vector embeddings
-    
-    U->>API: Upload Job Description
-    API->>JP: Process Job Description
-    JP->>DB: Store job requirements
-    JP->>VDB: Store job vectors
-    
-    U->>API: Request candidate matching
-    API->>TR: Compare candidates vs job
-    TR->>VDB: Query similar vectors
-    TR->>DB: Fetch detailed data
-    TR->>API: Return scored matches
-    API->>UI: Display ranked candidates
-    UI->>U: Show results & insights
-```
-
 ## 🛠️ Technology Stack
 
-### 🤖 **AI & Machine Learning**
 - **Microsoft AutoGen**: Multi-agent orchestration and conversation management
-- **OpenAI GPT Models**: 
-  - `gpt-3.5-turbo`: Fast processing for data extraction
-  - `gpt-4`: Advanced analysis and matching logic
-- **Tiktoken**: Token counting and text optimization
-- **Mem0**: Memory management for RAG (Retrieval-Augmented Generation)
-
-### 💾 **Data Storage & Vector Search**
+- **OpenAI GPT Models**: `gpt-3.5-turbo` for data extraction, `gpt-4` for analysis
 - **MongoDB**: Primary database for structured candidate and job data
 - **ChromaDB**: Vector database for semantic similarity search
-- **JSON Schema**: Standardized data formats for consistency
-
-### 🌐 **Backend & API**
-- **FastAPI**: High-performance API framework with async support
 - **Python 3.10+**: Core programming language
-- **Async/Await**: Concurrent processing for scalability
 - **PDFPlumber**: Advanced PDF text extraction
-
-### 🎨 **Frontend & UI**
-- **Streamlit**: Interactive web interface for recruiters
-- **NgRok**: Secure tunneling for development and demos
-
-### ⚙️ **Infrastructure & DevOps**
-- **Environment Management**: `.env` configuration
-- **Logging**: Comprehensive error tracking and monitoring
-- **Error Handling**: Robust exception management
+- **ChromaDB**: Vector database for semantic search and embeddings storage
 
 ## 📁 Project Structure
 
 ```
 resume-job-matcher/
-│
-├── 📱 main.py                     # Application entry point & pipeline orchestration
-├── 📋 README.md                   # Project documentation (this file)
-├── 📦 requirement.txt             # Python dependencies
-├── 🔐 .env                        # Environment variables (API keys, DB credentials)
-│
+├── 📱 main.py                     # Application entry point
+├──  requirement.txt             # Python dependencies
+├── 🔐 .env                        # Environment variables
 ├── 🤖 agents/                     # AI Agents Implementation
-│   ├── resume_parser_agent.py        # Extracts structured data from resumes
-│   ├── job_posting_parser_agent.py   # Parses job descriptions and requirements
-│   ├── resume_rag_builder_agent.py   # Creates resume vector embeddings
-│   └── job_rag_builder_agent.py      # Creates job vector embeddings
-│
+│   ├── resume_parser_agent.py
+│   ├── job_posting_parser_agent.py
+│   ├── resume_rag_builder_agent.py
+│   ├── job_rag_builder_agent.py
+│   └── talent_matcher_agent.py
 ├── 👥 teams/                      # Agent Team Orchestration
-│   ├── resume_processing_team.py     # Coordinates resume parsing workflow
-│   └── job_processing_team.py        # Coordinates job parsing workflow
-│
+│   ├── resume_processing_team.py
+│   ├── job_processing_team.py
+│   └── talent_matching_team.py
 ├── ⚙️ config/                     # Configuration Management
-│   └── settings.py                   # Centralized application settings
-│
+│   └── settings.py
 ├── 🛠️ util/                       # Utility Functions & Helpers
-│   ├── base_document_parser.py       # Base class for document processing
-│   ├── ResumeParser.py               # Resume processing pipeline
-│   ├── JobParser.py                  # Job description processing pipeline
-│   ├── pdf_to_text_extractor.py      # PDF text extraction utilities
-│   ├── text_processor.py             # Text chunking and preprocessing
-│   ├── mongo_util.py                 # MongoDB connection and operations
-│   ├── mem0_rag_resume_util.py       # Resume RAG implementation
-│   └── mem0_rag_job_util.py          # Job RAG implementation
-│
+│   ├── ResumeParser.py
+│   ├── JobParser.py
+│   ├── TalentMatchingEngine.py
+│   └── mongo_util.py
 ├── 🗂️ model/                      # AI Model Management
-│   └── model_client.py               # OpenAI client configuration
-│
-├── 📄 resumes/                    # Sample Resume Storage
-│   ├── CV_Tharun_Peddi_AI_QA.pdf     # Sample resume files
-│   └── MrinalAich-Backend-Engineer.pdf
-│
-├── 💼 job/                        # Sample Job Descriptions
-│   └── QA_Engineer_Contract_Job_Post.pdf
-│
-└── 📊 chromadb/                   # Vector Database Storage
-    ├── candidate_profiles/            # Resume vector embeddings
-    └── job_descriptions/              # Job vector embeddings
-```
-
-### 🔍 **File & Class Descriptions**
-
-#### 🎯 **Core Application Files**
-
-| File | Purpose | Key Classes/Functions |
-|------|---------|----------------------|
-| `main.py` | Application entry point and processing pipeline | `DocumentProcessingPipeline` |
-| `config/settings.py` | Centralized configuration management | `ApplicationConfig`, `DatabaseConfig`, `ModelConfig` |
-
-#### 🤖 **AI Agents (`agents/`)**
-
-| File | Agent Type | Responsibility | Key Functions |
-|------|-----------|----------------|---------------|
-| `resume_parser_agent.py` | Data Extraction | Parse resumes → structured JSON | `parse_resume_agent()`, `safe_insert_candidate()` |
-| `job_posting_parser_agent.py` | Data Extraction | Parse job descriptions → structured JSON | `parse_job_posting_agent()` |
-| `resume_rag_builder_agent.py` | Vector Processing | Create resume embeddings for similarity search | `build_rag_using_resume_context()` |
-| `job_rag_builder_agent.py` | Vector Processing | Create job embeddings for similarity search | `build_rag_using_job_context()` |
-
-#### 👥 **Team Orchestration (`teams/`)**
-
-| File | Purpose | Agents Coordinated |
-|------|---------|-------------------|
-| `resume_processing_team.py` | Resume workflow management | Resume Parser + Resume RAG Builder |
-| `job_processing_team.py` | Job processing workflow | Job Parser + Job RAG Builder |
-
-#### 🛠️ **Utility Classes (`util/`)**
-
-| File | Purpose | Key Functions |
-|------|---------|---------------|
-| `base_document_parser.py` | Base class for all parsers | `BaseDocumentParser.extract_text_from_file()` |
-| `ResumeParser.py` | Resume processing pipeline | `ResumeParserAgent.process_resume()` |
-| `JobParser.py` | Job processing pipeline | `JobParserAgent.process_job()` |
-| `pdf_to_text_extractor.py` | PDF text extraction | `extract_text_from_pdf()` |
-| `text_processor.py` | Text chunking & preprocessing | `chunk_text()`, `count_tokens()` |
-| `mongo_util.py` | Database operations | `insert_candidate_to_mongo()`, `insert_job_to_mongo()` |
-
-#### 🗄️ **Data Models & Schema**
-
-**Resume JSON Schema:**
-```json
-{
-  "candidate_name": "string",
-  "candidate_email": "string",
-  "candidate_phone": "string", 
-  "candidate_skills": ["skill1", "skill2"],
-  "candidate_total_experience": "string",
-  "professional_experience": [
-    {
-      "company": "string",
-      "role": "string",
-      "start_date": "YYYY-MM-DD",
-      "end_date": "YYYY-MM-DD", 
-      "responsibilities": "string",
-      "duration_of_job": "string"
-    }
-  ],
-  "education": {
-    "degree": "string",
-    "institution": "string",
-    "graduation_year": "string"
-  },
-  "languages": ["English", "Spanish"]
-}
-```
-
-**Job Description JSON Schema:**
-```json
-{
-  "job_title": "string",
-  "company_name": "string", 
-  "job_location": "string",
-  "required_skills": ["skill1", "skill2"],
-  "job_responsibilities": ["responsibility1", "responsibility2"],
-  "required_experience": "string",
-  "education_requirements": "string",
-  "job_type": "string"
-}
+│   └── model_client.py
+├── 📄 resumes/                    # Resume Storage
+└── 💼 job/                        # Job Description Storage
 ```
 
 ## 🚀 Installation & Setup
@@ -451,28 +236,14 @@ documents_path = {
 
 ### 🎯 **Basic Usage**
 
-1. **Process Sample Documents**
-   ```python
-   import asyncio
-   from main import DocumentProcessingPipeline
-   
-   # Initialize pipeline
-   pipeline = DocumentProcessingPipeline()
-   
-   # Define document paths
-   documents = {
-       "resume_path": ["path/to/resume.pdf"],
-       "job_desc_path": ["path/to/job_description.pdf"]
-   }
-   
-   # Process documents
-   results = await pipeline.process_documents(documents)
-   pipeline.print_summary(results)
-   ```
-
-2. **Command Line Execution**
+1. **Process Documents**
    ```bash
    python main.py
+   ```
+
+2. **Run Demo**
+   ```bash
+   python talent_matching_demo.py
    ```
 
 ### 📊 **Understanding Results**
@@ -484,13 +255,23 @@ The system provides detailed output including:
 - 🔍 **Vector Embedding Creation**
 - ⚠️ **Error Reports** with troubleshooting info
 
-### 🔧 **Configuration Options**
+## 🤝 Contributing
 
-Modify `config/settings.py` for:
-- **Model Selection**: Switch between GPT-3.5-turbo and GPT-4
-- **Token Limits**: Adjust processing chunk sizes
-- **Database Settings**: Configure MongoDB connections
-- **Vector Store**: Customize ChromaDB collections
+### 🔧 **Development Setup**
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/new-feature`
+3. Make changes with proper testing
+4. Submit pull request with detailed description
+
+### 📋 **Coding Standards**
+- Follow PEP 8 style guidelines
+- Add docstrings to all functions
+- Include error handling
+- Write unit tests for new features
+
+---
+
+**🎯 Ready to revolutionize your recruitment process with AI-powered talent matching!**
 
 ## 📚 API Documentation
 
@@ -583,12 +364,12 @@ For questions, issues, or contributions:
 A socity of team in autogen consists with 
 
 agent 1: resume parser agent 
-            it will parse the list of resume's then fetch experince details, skills and projects store in mongo D for tracking and mem0 + vector db for Agent 
-            Note : LLM prompts to extract structured data more accurately from raw PDF text. then store in mem0 + vector db
+            it will parse the list of resume's then fetch experince details, skills and projects store in mongo DB for tracking and ChromaDB vector database for Agent 
+            Note : LLM prompts to extract structured data more accurately from raw PDF text. then store in ChromaDB vector database
 
 agent 2: job document parser agent
-            it will parese the job description then fetch expected skills and job responsibilities store in mongo D for tracking and mem0 + vector db for Agent 
-            Note : LLM prompts to extract structured data more accurately from raw PDF text. then store in mem0 + vector db
+            it will parese the job description then fetch expected skills and job responsibilities store in mongo DB for tracking and ChromaDB vector database for Agent 
+            Note : LLM prompts to extract structured data more accurately from raw PDF text. then store in ChromaDB vector database
 
 agent 3: talent rater agent
             it will compare 
@@ -602,7 +383,7 @@ Technologies :
 
 microsoft autogen - for agents creation and workflow
 mongo DB - for tracking of uploads to portal
-mem0 + rag - for both agents store their context , one is resume another one is job.
+ChromaDB vector database - for both agents store their context , one is resume another one is job.
 python - for programing
 pdfplumber - for pdf parsing of resume or job description
 fastAPI - for api development of /uploadcv, /uploadjd and /processjobbycv
@@ -622,7 +403,7 @@ graph TD
     B --> D1[Extracted Resume Data]
     C --> D2[Extracted JD Data]
 
-    D1 --> E[Store in MongoDB + mem0 + VectorDB]
+    D1 --> E[Store in MongoDB + ChromaDB VectorDB]
     D2 --> E
 
     F[Click 'Process Job by CV'] --> G[Talent Rater Agent]
@@ -647,7 +428,7 @@ However, a few minor gaps, clarifications, and recommendations remain for scalab
 ✅ What’s Correct / Clear
 	•	✅ Three Agents well defined (Resume Parser, JD Parser, Talent Rater)
 	•	✅ LLM prompts for extraction: Yes, good that you’re using LLMs for structured extraction.
-	•	✅ Use of mem0 + vector DB: Great for RAG support.
+	•	✅ Use of ChromaDB vector database: Great for RAG support.
 	•	✅ MongoDB for tracking is sensible.
 	•	✅ Endpoints /uploadcv, /uploadjd, /processjobbycv are well-scoped.
 	•	✅ Technologies chosen are lightweight and good for MVP or production.
@@ -659,7 +440,7 @@ However, a few minor gaps, clarifications, and recommendations remain for scalab
 🔸 1. Clarify Data Flow Between Agents
 
 Right now it’s implicit — make it explicit how agents communicate or pass data:
-	•	Do they share context via mem0?
+	•	Do they share context via ChromaDB?
 	•	Are you chaining them in a custom workflow or orchestrated via AutoGen’s GroupChat?
 
 📌 Recommendation: Define Agent Communication Flow, e.g.,
@@ -745,7 +526,7 @@ graph TD
     B --> D1[Extracted Resume Data]
     C --> D2[Extracted JD Data]
 
-    D1 --> E[Store in MongoDB + mem0 + VectorDB]
+    D1 --> E[Store in MongoDB + ChromaDB VectorDB]
     D2 --> E
 
     F[Click 'Process Job by CV'] --> G[Talent Rater Agent]
@@ -760,7 +541,7 @@ graph TD
 
 Area	Status	Notes
 Agent Design	✅ Complete	All agents are defined well
-Use of mem0 + Vector DB	✅ Good	Ensure consistent format of inputs
+Use of ChromaDB Vector DB	✅ Good	Ensure consistent format of inputs
 Resume & JD Parsing	✅/⚠️	Add structured schema definition
 Partial Match Logic	⚠️ Needs Embeddings	Use cosine similarity
 Tech Stack	✅ Practical	FastAPI + Streamlit is excellent

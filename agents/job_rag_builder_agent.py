@@ -1,7 +1,7 @@
 from autogen_agentchat.agents import AssistantAgent
 from model.model_client import get_model_client
 from autogen_core.tools import FunctionTool
-from util.mem0_rag_job_util import rag_job_with_mem0
+from util.chromadb_job_util import store_job_in_chromadb
 import json
 
 
@@ -16,22 +16,22 @@ def sanitize_json_string(json_str):
         return None
 
 
-mem0_tool = FunctionTool(
-    rag_job_with_mem0,
-    description="tool to insert job summary in chunks to mem0",
+chromadb_tool = FunctionTool(
+    store_job_in_chromadb,
+    description="tool to insert job summary in chunks to ChromaDB vector database",
 )
 
 
 def build_rag_using_job_context():
     agent = AssistantAgent(
         name="job_rag_builder_agent",
-        description="an agent that builds a RAG (Retrieval-Augmented Generation) system using the context extracted from job posting. use mem0 to store the context and use it to answer questions about the job posting document.",
+        description="an agent that builds a RAG (Retrieval-Augmented Generation) system using the context extracted from job posting. Use ChromaDB to store the context and use it to answer questions about the job posting document.",
         model_client=get_model_client(),
         system_message="""
         You are an intelligent assistant specialized in processing job descriptions for optimal candidate matching. Your primary goal is to structure and store job information in a way that maximizes matching accuracy with candidate profiles.
 
         Key Responsibilities:
-        1. Process parsed job data and prepare it for vector storage in ChromaDB through mem0
+        1. Process parsed job data and prepare it for vector storage in ChromaDB
         2. Structure information to optimize for semantic similarity matching with candidate profiles
         3. Ensure consistent formatting of technical terms and skills for better matching
 
@@ -80,7 +80,7 @@ def build_rag_using_job_context():
         - Structure technical requirements hierarchically (must-have vs. nice-to-have)
 
         5. STORAGE PROCESS:
-        Use the `rag_job_with_mem0` tool to store the processed data:
+        Use the `store_job_in_chromadb` tool to store the processed data:
         - Store each chunk type separately for targeted matching
         - Include cross-references between related chunks
         - Ensure all technical terms are standardized
@@ -95,6 +95,6 @@ def build_rag_using_job_context():
 
         Remember: The quality of candidate matching depends on how well you structure and store this data. Focus on technical accuracy and standardization of terms.
         """,
-        tools=[mem0_tool],
+        tools=[chromadb_tool],
     )
     return agent

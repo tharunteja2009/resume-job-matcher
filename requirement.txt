@@ -15,5 +15,4 @@ streamlit
 fastapi[standard]
 pdfplumber
 pymongo
-mem0ai
 chromadb

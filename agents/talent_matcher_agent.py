@@ -11,7 +11,7 @@ from config.settings import get_config
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Initialize ChromaDB client using the same path as mem0 utilities
+# Initialize ChromaDB client
 PERSIST_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..", "chromadb"
 )
