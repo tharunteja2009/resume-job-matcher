@@ -1,0 +1,3 @@
+"""
+AutoGen team configurations.
+"""

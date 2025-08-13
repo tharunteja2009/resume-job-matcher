@@ -1,18 +1,39 @@
-autogen-agentchat
-autogen-core
-autogen-ext
-dotenv
-openai
-tiktoken
+# Resume Job Matcher - Production Dependencies
+# Updated for organized project structure with cost tracking
+
+# Core AutoGen Framework
+autogen-agentchat>=0.2.0
+autogen-core>=0.2.0
+autogen-ext>=0.2.0
+
+# AutoGen Extensions
 autogen-ext[http-tool]
-autogen-ext[openai]
-autogen-ext
-asyncio
-watchdog
-pyngrok
+autogen-ext[openai]  
 autogen-ext[mcp]
-streamlit
-fastapi[standard]
-pdfplumber
-pymongo
-chromadb
+
+# AI and ML Dependencies
+openai>=1.0.0
+tiktoken>=0.5.0
+
+# Document Processing
+pdfplumber>=0.9.0
+
+# Database Layer
+pymongo>=4.0.0
+chromadb>=0.4.0
+
+# Web Framework (optional)
+fastapi[standard]>=0.100.0
+streamlit>=1.28.0
+
+# Development and Utilities
+python-dotenv>=1.0.0
+asyncio
+watchdog>=3.0.0
+
+# Optional Tunneling (development)
+pyngrok>=7.0.0
+
+# Data Processing
+pathlib2>=2.3.0  # For enhanced path handling
+typing-extensions>=4.0.0  # For better type hints
