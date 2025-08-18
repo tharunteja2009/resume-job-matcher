@@ -5,17 +5,6 @@ from src.database.vector.chromadb_job_util import store_job_in_chromadb
 import json
 
 
-def sanitize_json_string(json_str):
-    """Ensure the JSON string is properly formatted and escaped."""
-    try:
-        # First parse to validate
-        data = json.loads(json_str)
-        # Then properly format it
-        return json.dumps(data, ensure_ascii=False)
-    except json.JSONDecodeError:
-        return None
-
-
 chromadb_tool = FunctionTool(
     store_job_in_chromadb,
     description="tool to insert job summary in chunks to ChromaDB vector database",

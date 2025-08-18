@@ -239,7 +239,7 @@ async def demo_specific_matching():
 
     try:
         # Demo 1: Find candidates for a specific job
-        # Note: Replace 'sample_job_id' with an actual job ID from your MongoDB
+        # Note: Replace 'sample_job_id' with an actual job index from ChromaDB (e.g., "0", "1", "2")
         print("\n📋 Demo 1: Finding candidates for a specific job...")
         job_matching_result = await pipeline.find_best_candidates_for_job(
             "sample_job_id", top_k=3
@@ -250,7 +250,7 @@ async def demo_specific_matching():
             print("⚠️ Job-to-candidates matching demo skipped (no valid job ID)")
 
         # Demo 2: Find jobs for a specific candidate
-        # Note: Replace 'sample_candidate_id' with an actual candidate ID from your MongoDB
+        # Note: Replace 'sample_candidate_id' with an actual candidate index from ChromaDB (e.g., "0", "1", "2")
         print("\n👤 Demo 2: Finding jobs for a specific candidate...")
         candidate_matching_result = await pipeline.find_best_jobs_for_candidate(
             "sample_candidate_id", top_k=3
@@ -263,7 +263,9 @@ async def demo_specific_matching():
         print(
             "\n💡 Note: To use specific matching, replace 'sample_job_id' and 'sample_candidate_id'"
         )
-        print("   with actual IDs from your MongoDB database.")
+        print(
+            "   with actual indices from your ChromaDB collections (e.g., '0', '1', '2')."
+        )
 
     except Exception as e:
         logger.error(f"Matching demonstration failed: {e}")

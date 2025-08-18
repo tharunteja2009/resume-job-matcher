@@ -29,8 +29,3 @@ def get_resume_processing_team(num_resumes=1):
         termination_condition=termination_condition,
     )
     return team
-
-
-def get_resume_processing_team_legacy():
-    """Legacy function for backward compatibility - uses default settings."""
-    return get_resume_processing_team(num_resumes=1)

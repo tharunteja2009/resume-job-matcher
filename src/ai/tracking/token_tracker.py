@@ -160,7 +160,10 @@ class TokenTracker:
                     "total_operations": 0,
                     "total_cost": 0.0,
                     "total_tokens": 0,
+                    "total_prompt_tokens": 0,
+                    "total_completion_tokens": 0,
                     "operation_breakdown": {},
+                    "model_usage": {},
                 }
 
             total_cost = sum(record.estimated_cost for record in self.usage_records)
@@ -239,7 +242,7 @@ class TokenTracker:
             print("💵 Estimated Total Cost: $0.0000")
 
         # Model breakdown
-        if summary["model_usage"]:
+        if "model_usage" in summary and summary["model_usage"]:
             print(f"\n📊 MODEL USAGE BREAKDOWN:")
             print("-" * 50)
             for model, usage in summary["model_usage"].items():
@@ -249,7 +252,7 @@ class TokenTracker:
                 print(f"   • Cost: ${usage['cost']:.4f}")
 
         # Operation breakdown
-        if summary["operation_breakdown"]:
+        if "operation_breakdown" in summary and summary["operation_breakdown"]:
             print(f"\n🎯 OPERATION TYPE BREAKDOWN:")
             print("-" * 50)
             for op_type, breakdown in summary["operation_breakdown"].items():

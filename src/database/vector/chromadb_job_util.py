@@ -261,6 +261,23 @@ def store_job_in_chromadb(data: str) -> None:
         else:
             skills_str = str(skills) if skills else ""
 
+        # 🔍 Check for duplicates before insertion
+        print(f"🔍 Checking for existing job: {job_title} at {company_name}")
+        try:
+            existing_jobs = job_collection.get(
+                where={"$and": [{"job_title": job_title}, {"company": company_name}]},
+                include=["metadatas"],
+            )
+
+            if existing_jobs["ids"] and len(existing_jobs["ids"]) > 0:
+                print(
+                    f"⚠️  Job '{job_title}' at '{company_name}' already exists in ChromaDB (ID: {existing_jobs['ids'][0]}) - Skipping insertion"
+                )
+                logger.info(f"Skipping duplicate job: {job_title} at {company_name}")
+                return
+        except Exception as e:
+            print(f"⚠️  Error checking for duplicates: {e} - Proceeding with insertion")
+
         # Prepare metadata
         metadata = {
             "type": "job_description",

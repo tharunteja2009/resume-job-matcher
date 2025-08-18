@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import asyncio
 import logging
+import glob
 
 # Add the src directory to Python path
 project_root = Path(__file__).parent
@@ -53,6 +54,228 @@ for logger_name in [
     logging.getLogger(logger_name).setLevel(logging.ERROR)
 
 logger = logging.getLogger(__name__)
+
+
+def get_all_pdf_paths(project_root: Path) -> dict:
+    """
+    Dynamically scan for all PDF files in resume and job directories.
+
+    Args:
+        project_root: The root directory of the project
+
+    Returns:
+        Dictionary containing lists of resume and job PDF paths
+    """
+    # Define the directories to scan
+    resume_dir = project_root / "src" / "data" / "resumes"
+    job_dir = project_root / "src" / "data" / "job"
+
+    # Also check for resumes/ and job/ in root directory for backward compatibility
+    alt_resume_dir = project_root / "resumes"
+    alt_job_dir = project_root / "job"
+
+    # Get all PDF files from resume directories
+    resume_paths = []
+    for directory in [resume_dir, alt_resume_dir]:
+        if directory.exists():
+            pdf_files = list(directory.glob("*.pdf"))
+            resume_paths.extend([str(pdf) for pdf in pdf_files])
+
+    # Get all PDF files from job directories
+    job_paths = []
+    for directory in [job_dir, alt_job_dir]:
+        if directory.exists():
+            pdf_files = list(directory.glob("*.pdf"))
+            job_paths.extend([str(pdf) for pdf in pdf_files])
+
+    # Remove duplicates while preserving order
+    resume_paths = list(dict.fromkeys(resume_paths))
+    job_paths = list(dict.fromkeys(job_paths))
+
+    print(f"📁 Found {len(resume_paths)} resume PDF(s)")
+    print(f"📁 Found {len(job_paths)} job description PDF(s)")
+
+    return {"resume_path": resume_paths, "job_desc_path": job_paths}
+
+
+def clean_mongodb_collections() -> bool:
+    """
+    Clean up existing MongoDB collections for a fresh start.
+
+    Returns:
+        True if cleanup was successful, False otherwise
+    """
+    try:
+        print("\n🗑️  Cleaning up existing MongoDB collections...")
+
+        import sys
+
+        src_path = project_root / "src"
+        sys.path.insert(0, str(src_path))
+
+        from src.database.mongo.mongo_util import get_mongo_client, get_collection_names
+
+        # Get MongoDB client and collections
+        db = get_mongo_client()
+        collections = get_collection_names()
+
+        # Clean candidates collection
+        candidates_collection = db[collections["candidates"]]
+        candidate_count = candidates_collection.count_documents({})
+        if candidate_count > 0:
+            print(f"   📄 Found {candidate_count} candidates in MongoDB")
+            candidates_collection.delete_many({})
+            print(f"   ✅ Deleted all {candidate_count} candidates")
+        else:
+            print("   📄 No candidates found in MongoDB")
+
+        # Clean jobs collection
+        jobs_collection = db[collections["jobs"]]
+        job_count = jobs_collection.count_documents({})
+        if job_count > 0:
+            print(f"   💼 Found {job_count} jobs in MongoDB")
+            jobs_collection.delete_many({})
+            print(f"   ✅ Deleted all {job_count} jobs")
+        else:
+            print("   💼 No jobs found in MongoDB")
+
+        print("   🎯 MongoDB cleanup completed - ready for fresh start!")
+        return True
+
+    except Exception as e:
+        print(f"   ❌ Error during MongoDB cleanup: {e}")
+        return False
+
+
+def clean_chromadb_collections() -> bool:
+    """
+    Clean up existing ChromaDB collections for a fresh start.
+
+    Returns:
+        True if cleanup was successful, False otherwise
+    """
+    try:
+        print("\n🗑️  Cleaning up existing ChromaDB collections...")
+
+        from chromadb import PersistentClient
+        import os
+        import shutil
+
+        PERSIST_DIR = os.path.join(os.getcwd(), "src", "chromadb")
+
+        # Check if ChromaDB directory exists
+        if os.path.exists(PERSIST_DIR):
+            print(f"   📂 Found ChromaDB directory: {PERSIST_DIR}")
+
+            try:
+                # Try to connect and delete collections properly first
+                client = PersistentClient(path=PERSIST_DIR)
+                collections = client.list_collections()
+
+                if collections:
+                    print(f"   📋 Found {len(collections)} existing collections:")
+                    for collection in collections:
+                        print(f"      • {collection.name}")
+                        try:
+                            client.delete_collection(collection.name)
+                            print(f"      ✅ Deleted collection: {collection.name}")
+                        except Exception as e:
+                            print(
+                                f"      ⚠️  Could not delete collection {collection.name}: {e}"
+                            )
+                else:
+                    print("   📋 No existing collections found")
+
+                # Also remove the entire directory for a complete clean start
+                print("   🗑️  Removing ChromaDB directory for complete cleanup...")
+                shutil.rmtree(PERSIST_DIR)
+                print("   ✅ ChromaDB directory removed successfully")
+
+            except Exception as e:
+                print(f"   ⚠️  Could not connect to ChromaDB, removing directory: {e}")
+                # If we can't connect, just remove the directory
+                shutil.rmtree(PERSIST_DIR)
+                print("   ✅ ChromaDB directory removed successfully")
+        else:
+            print("   📂 No existing ChromaDB directory found - starting fresh")
+
+        print("   🎯 ChromaDB cleanup completed - ready for fresh start!")
+        return True
+
+    except Exception as e:
+        print(f"   ❌ Error during ChromaDB cleanup: {e}")
+        return False
+
+
+def get_user_choice(documents_path: dict) -> str:
+    """
+    Prompt user to choose between parsing new files or using existing ChromaDB data.
+
+    Args:
+        documents_path: Dictionary containing available PDF paths
+
+    Returns:
+        User's choice: 'parse', 'existing', or 'clean_restart'
+    """
+    resume_paths = documents_path.get("resume_path", [])
+    job_desc_paths = documents_path.get("job_desc_path", [])
+
+    print("\n" + "=" * 80)
+    print("🚀 RESUME-JOB MATCHER - EXECUTION OPTIONS")
+    print("=" * 80)
+
+    # Show available files
+    print(f"📁 Available Files:")
+    print(f"   📄 Resumes: {len(resume_paths)} PDF(s)")
+    if resume_paths:
+        for i, path in enumerate(resume_paths[:3], 1):  # Show first 3
+            print(f"      {i}. {Path(path).name}")
+        if len(resume_paths) > 3:
+            print(f"      ... and {len(resume_paths) - 3} more")
+
+    print(f"   💼 Job Descriptions: {len(job_desc_paths)} PDF(s)")
+    if job_desc_paths:
+        for i, path in enumerate(job_desc_paths[:3], 1):  # Show first 3
+            print(f"      {i}. {Path(path).name}")
+        if len(job_desc_paths) > 3:
+            print(f"      ... and {len(job_desc_paths) - 3} more")
+
+    print("\n" + "-" * 60)
+    print("Choose your execution mode:")
+    print("\n1️⃣  PARSE & ANALYZE (Full Pipeline)")
+    print("   📝 Parse all PDF files from scratch")
+    print("   💾 Store processed data in ChromaDB")
+    print("   🎯 Run comprehensive talent matching analysis")
+
+    print("\n2️⃣  DIRECT MATCHING (Use Existing Data)")
+    print("   📊 Skip parsing phase entirely")
+    print("   🔄 Use existing data from ChromaDB")
+    print("   🎯 Run talent matching analysis directly")
+
+    print("\n3️⃣  CLEAN & RESTART (Fresh Start)")
+    print("   🗑️  Clean up existing ChromaDB & MongoDB collections")
+    print("   📝 Parse all PDF files from scratch")
+    print("   💾 Store processed data in both ChromaDB & MongoDB")
+    print("   🎯 Run comprehensive talent matching analysis")
+
+    print("\n" + "-" * 60)
+
+    while True:
+        try:
+            choice = input("Enter your choice (1, 2, or 3): ").strip()
+            if choice == "1":
+                return "parse"
+            elif choice == "2":
+                return "existing"
+            elif choice == "3":
+                return "clean_restart"
+            else:
+                print("❌ Invalid choice. Please enter 1, 2, or 3.")
+        except KeyboardInterrupt:
+            print("\n\n👋 Execution cancelled by user.")
+            sys.exit(0)
+        except Exception as e:
+            print(f"❌ Input error: {e}. Please try again.")
 
 
 class DocumentProcessingPipeline:
@@ -186,15 +409,52 @@ class DocumentProcessingPipeline:
             import os
 
             PERSIST_DIR = os.path.join(os.getcwd(), "src", "chromadb")
+
+            # Check if ChromaDB directory exists
+            if not os.path.exists(PERSIST_DIR):
+                print("\n⚠️  No ChromaDB directory found.")
+                print(
+                    "   Collections need to be created first by processing documents."
+                )
+                print("   Skipping specific matching demonstrations.")
+                print("=" * 60)
+                return
+
             client = PersistentClient(path=PERSIST_DIR)
 
-            # Get collections
-            candidate_collection = client.get_collection("candidate_profiles")
-            job_collection = client.get_collection("job_descriptions")
+            # Check if required collections exist
+            try:
+                existing_collections = [col.name for col in client.list_collections()]
 
-            # Get sample data
-            candidates = candidate_collection.get(limit=3, include=["metadatas"])
-            jobs = job_collection.get(limit=3, include=["metadatas"])
+                if "candidate_profiles" not in existing_collections:
+                    print("\n⚠️  Candidate profiles collection not found.")
+                    print("   Process some resumes first to create candidate data.")
+                    print("   Skipping specific matching demonstrations.")
+                    print("=" * 60)
+                    return
+
+                if "job_descriptions" not in existing_collections:
+                    print("\n⚠️  Job descriptions collection not found.")
+                    print("   Process some job descriptions first to create job data.")
+                    print("   Skipping specific matching demonstrations.")
+                    print("=" * 60)
+                    return
+
+                # Get collections
+                candidate_collection = client.get_collection("candidate_profiles")
+                job_collection = client.get_collection("job_descriptions")
+
+                # Get sample data
+                candidates = candidate_collection.get(limit=3, include=["metadatas"])
+                jobs = job_collection.get(limit=3, include=["metadatas"])
+
+            except Exception as e:
+                print(f"\n⚠️  Error accessing ChromaDB collections: {e}")
+                print("   The collections may not be properly initialized.")
+                print("   Try running option 1 or 3 first to process documents.")
+                print("   Skipping specific matching demonstrations.")
+                print("=" * 60)
+                return
 
             if candidates["metadatas"] and jobs["metadatas"]:
                 # Demo 1: Job to Candidates matching
@@ -383,15 +643,81 @@ async def main(documents_path: dict) -> None:
     pipeline = DocumentProcessingPipeline()
 
     try:
-        # Phase 1: Process documents (resumes and jobs)
-        print("🚀 Phase 1: Processing Documents...")
-        results = await pipeline.process_documents(documents_path)
+        # Get user's choice
+        user_choice = get_user_choice(documents_path)
 
-        # Phase 2: Perform talent matching analysis
-        print("\n🚀 Phase 2: Performing Talent Matching Analysis...")
-        matching_results = await pipeline.perform_talent_matching_analysis()
+        print("\n" + "=" * 80)
 
-        # Phase 3: Perform specific matching demonstrations
+        if user_choice == "parse":
+            # Full pipeline: Parse documents and then perform matching
+            resume_paths = documents_path.get("resume_path", [])
+            job_desc_paths = documents_path.get("job_desc_path", [])
+
+            if len(resume_paths) == 0 and len(job_desc_paths) == 0:
+                print("❌ No PDF files found to process!")
+                print(
+                    "   Please add PDF files to the resume or job directories and try again."
+                )
+                return
+
+            print("🚀 FULL PIPELINE MODE - Parse & Analyze")
+            print("=" * 80)
+
+            # Phase 1: Process documents (resumes and jobs)
+            print("🚀 Phase 1: Processing Documents...")
+            results = await pipeline.process_documents(documents_path)
+
+            # Phase 2: Perform talent matching analysis
+            print("\n🚀 Phase 2: Performing Talent Matching Analysis...")
+            matching_results = await pipeline.perform_talent_matching_analysis()
+
+        elif user_choice == "clean_restart":
+            # Clean ChromaDB and then do full pipeline
+            resume_paths = documents_path.get("resume_path", [])
+            job_desc_paths = documents_path.get("job_desc_path", [])
+
+            if len(resume_paths) == 0 and len(job_desc_paths) == 0:
+                print("❌ No PDF files found to process!")
+                print(
+                    "   Please add PDF files to the resume or job directories and try again."
+                )
+                return
+
+            print("🚀 CLEAN & RESTART MODE - Fresh Start")
+            print("=" * 80)
+
+            # Step 1: Clean up both databases
+            chromadb_cleanup_success = clean_chromadb_collections()
+            mongodb_cleanup_success = clean_mongodb_collections()
+
+            if not chromadb_cleanup_success:
+                print("❌ ChromaDB cleanup failed. Continuing anyway...")
+            if not mongodb_cleanup_success:
+                print("❌ MongoDB cleanup failed. Continuing anyway...")
+
+            # Step 2: Process documents (resumes and jobs)
+            print("\n🚀 Phase 1: Processing Documents...")
+            results = await pipeline.process_documents(documents_path)
+
+            # Step 3: Perform talent matching analysis
+            print("\n🚀 Phase 2: Performing Talent Matching Analysis...")
+            matching_results = await pipeline.perform_talent_matching_analysis()
+
+        else:  # user_choice == "existing"
+            # Direct matching using existing ChromaDB data
+            print("🚀 DIRECT MATCHING MODE - Using Existing Data")
+            print("=" * 80)
+            print("📊 Skipping document parsing phase...")
+            print("🔄 Using existing data from ChromaDB...")
+
+            # Skip processing, go directly to matching
+            results = {"resumes": [], "jobs": [], "errors": []}
+
+            # Phase 2: Perform talent matching analysis with existing data
+            print("\n🚀 Phase 2: Performing Talent Matching Analysis...")
+            matching_results = await pipeline.perform_talent_matching_analysis()
+
+        # Phase 3: Perform specific matching demonstrations (for all modes)
         print("\n🚀 Phase 3: Specific Matching Demonstrations...")
         await pipeline.perform_specific_matching_demos()
 
@@ -449,15 +775,8 @@ if __name__ == "__main__":
     # Set environment variables for cleaner output
     os.environ["AUTOGEN_LOGGING"] = "ERROR"
 
-    documents_path = {
-        "resume_path": [
-            "/Users/tharuntejapeddi/Projects/resume-job-matcher/src/data/resumes/Anita_Daiya.pdf",
-            "/Users/tharuntejapeddi/Projects/resume-job-matcher/src/data/resumes/rohini.pdf",
-        ],
-        "job_desc_path": [
-            "/Users/tharuntejapeddi/Projects/resume-job-matcher/src/data/job/QA_Engineer_Contract_Job_Post_NTT_SINGAPORE.pdf"
-        ],
-    }
+    # Dynamically get all PDF files from resume and job directories
+    documents_path = get_all_pdf_paths(project_root)
 
     async def run_pipeline():
         print("🚀 Resume-Job Matcher Pipeline Starting...")

@@ -1,6 +1,6 @@
 from autogen_agentchat.agents import AssistantAgent
 from src.ai.models.tracked_model_client import get_tracked_model_client
-from src.database.mongo.mongo_util import insert_job_to_mongo
+from src.database.mongo.mongo_util import insert_job_to_mongo_dict
 from autogen_core.tools import FunctionTool
 import json
 
@@ -21,8 +21,8 @@ def safe_insert_job(data: str) -> str:
 
         # Try to parse the JSON - if it fails, it might be truncated
         try:
-            # First attempt at parsing
-            test_parse = json.loads(data)
+            # Parse JSON once
+            parsed_data = json.loads(data)
         except json.JSONDecodeError as parse_error:
             # If JSON is truncated, try to detect and fix common issues
             error_msg = str(parse_error)
@@ -31,8 +31,8 @@ def safe_insert_job(data: str) -> str:
             else:
                 return f"Error: Invalid JSON format: {error_msg}"
 
-        # If parsing succeeds, proceed with insertion
-        insert_job_to_mongo(data)
+        # If parsing succeeds, proceed with insertion using parsed data
+        insert_job_to_mongo_dict(parsed_data)
         return "Successfully inserted job data"
 
     except Exception as e:

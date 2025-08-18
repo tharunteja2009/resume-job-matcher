@@ -271,6 +271,22 @@ def store_candidate_in_chromadb(data: str) -> None:
         if isinstance(skills, list):
             skills = ", ".join(skills)
 
+        # 🔍 Check for duplicates before insertion
+        print(f"🔍 Checking for existing candidate: {candidate_name}")
+        try:
+            existing_candidates = candidate_collection.get(
+                where={"candidate_name": candidate_name}, include=["metadatas"]
+            )
+
+            if existing_candidates["ids"] and len(existing_candidates["ids"]) > 0:
+                print(
+                    f"⚠️  Candidate '{candidate_name}' already exists in ChromaDB (ID: {existing_candidates['ids'][0]}) - Skipping insertion"
+                )
+                logger.info(f"Skipping duplicate candidate: {candidate_name}")
+                return
+        except Exception as e:
+            print(f"⚠️  Error checking for duplicates: {e} - Proceeding with insertion")
+
         # Prepare metadata
         metadata = {
             "type": "candidate_profile",

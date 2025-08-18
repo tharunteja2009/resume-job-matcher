@@ -29,8 +29,3 @@ def get_job_processing_team(num_jobs: int = 1):
         termination_condition=termination_condition,
     )
     return team
-
-
-def get_job_processing_team_legacy():
-    """Legacy function for backward compatibility - uses default settings."""
-    return get_job_processing_team(num_jobs=1)

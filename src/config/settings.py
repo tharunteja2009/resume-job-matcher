@@ -153,10 +153,3 @@ config = ApplicationConfig()
 def get_config() -> ApplicationConfig:
     """Get the global configuration instance."""
     return config
-
-
-def reload_config() -> ApplicationConfig:
-    """Reload configuration from environment variables."""
-    global config
-    config = ApplicationConfig()
-    return config
